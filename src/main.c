@@ -2,6 +2,7 @@
 #include <zephyr/logging/log.h>
 
 #include "adc.h"
+#include "led.h"
 
 #define LOG_LEVEL LOG_LEVEL_INF
 LOG_MODULE_REGISTER(app_main, LOG_LEVEL);
@@ -14,6 +15,11 @@ int main(void)
 #ifdef CONFIG_ADC
         rc = adc_init();
         LOG_DBG("ADC returned %d", rc);
+#endif
+
+#ifdef CONFIG_LED
+        rc = led_init();
+        LOG_DBG("LED returned %d", rc);
 #endif
 
         return 0;

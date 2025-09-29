@@ -12,6 +12,7 @@
 
 / {
      aliases {
+            led-status = &pwm_led0;
             adc = &adc;
      };
 };
