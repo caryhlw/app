@@ -1,0 +1,17 @@
+description: Application configurations
+    
+compatible: "app,config"
+
+properties:
+    sample-interval-ms:
+        type: int
+        required: false
+        description: Time between samples in milliseconds
+    voltage-threshold-mv:
+        type: int
+        required: false
+        description: Battery lower threshold in millivolts
+    enable-ble:
+        type: boolean
+        required: false
+        description: Enable/disable BLE

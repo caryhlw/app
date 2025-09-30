@@ -5,6 +5,15 @@
  */
 
 / {
+    app {
+        compatible = "app,config";
+        sample-interval-ms = <1000>;
+        voltage-threshold-mv = <3300>;
+        enable-ble;
+    };
+};
+
+/ {
     zephyr,user {
         io-channels = <&adc 0>, <&adc 1>, <&adc 7>;
     };
