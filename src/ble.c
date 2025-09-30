@@ -5,11 +5,15 @@
 
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/uuid.h>
+#include <zephyr/bluetooth/gatt.h>
 
 #include "ble.h"
 
 #define LOG_LEVEL LOG_LEVEL_INF
 LOG_MODULE_REGISTER(app_ble, LOG_LEVEL);
+
+static ssize_t read_cb(struct bt_conn* conn, const struct bt_gatt_attr* attr, void* buf, uint16_t len, uint16_t offset);
+static void ccc_cfg_changed(const struct bt_gatt_attr* attr, uint16_t value);
 
 static const struct bt_data adv[] =
 {
@@ -19,8 +23,20 @@ static const struct bt_data adv[] =
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00)
 };
 
+static struct bt_uuid_128 base_uuid = BT_UUID_INIT_128(
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+);
+
+static const struct bt_uuid_128 char_uuid = BT_UUID_INIT_128(
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+);
+
 BT_GATT_SERVICE_DEFINE(svc,
     BT_GATT_PRIMARY_SERVICE(&base_uuid),
+    BT_GATT_CHARACTERISTIC(&char_uuid, BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE, read_cb, NULL, NULL),
+    BT_GATT_CCC(ccc_cfg_changed, BT_GATT_PERM_READ)
 );
 
 int ble_init(void)
@@ -53,6 +69,16 @@ int ble_init(void)
     rc = 0;
 #endif
     return rc;
+}
+
+static ssize_t read_cb(struct bt_conn* conn, const struct bt_gatt_attr* attr, void* buf, uint16_t len, uint16_t offset)
+{
+    return 0;
+}
+
+static void ccc_cfg_changed(const struct bt_gatt_attr* attr, uint16_t value)
+{
+    return;
 }
 
 #endif
