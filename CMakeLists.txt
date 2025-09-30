@@ -9,3 +9,5 @@ zephyr_include_directories(include)
 target_sources(app PRIVATE src/main.c)
 target_sources_ifdef(CONFIG_LED app PRIVATE src/led.c)
 target_sources_ifdef(CONFIG_ADC app PRIVATE src/adc.c)
+target_sources_ifdef(CONFIG_GPIO app PRIVATE src/button.c)
+

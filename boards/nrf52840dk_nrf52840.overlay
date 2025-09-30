@@ -13,6 +13,7 @@
 / {
      aliases {
             led-status = &pwm_led0;
+            btn-user = &button0;
             adc = &adc;
      };
 };
