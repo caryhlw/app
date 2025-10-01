@@ -9,6 +9,9 @@
 #include <nrfx_saadc.h>
 
 #include "adc.h"
+#include "events.h"
+#include "led.h"
+#include "ble.h"
 
 #define LOG_LEVEL LOG_LEVEL_INF
 LOG_MODULE_REGISTER(app_adc, LOG_LEVEL);
@@ -127,6 +130,7 @@ static void adc_timer_handler()
 static void work(struct k_work *work)
 {
     int rc;
+    led_event_dispatch(EVENT_SAMPLE);
     LOG_DBG("Sampling VDD...");
     sample();
 
@@ -138,6 +142,7 @@ static void work(struct k_work *work)
     else
     {
         LOG_ERR("Failed to get sample");
+        led_event_dispatch(EVENT_ERROR);
     }
 }
 

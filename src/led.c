@@ -15,6 +15,25 @@ LOG_MODULE_REGISTER(app_led, LOG_LEVEL);
 static const struct pwm_dt_spec led_pwm = PWM_DT_SPEC_GET(DEVICE_NODE);
 #endif
 
+#define THREAD_SIZE 512
+#define THREAD_PRIORITY 7
+static struct k_thread thread;
+static void led_thread(void *p1, void *p2, void *p3);
+
+#define SEM_COUNT_INIT 0
+#define SEM_COUNT_LIMIT 1
+#define SEM_TIMEOUT_MS 100
+static struct k_sem blink_sem;
+
+#define TIMER_START_DELAY_S 0
+#define BLINK_IDLE_FREQUENCY_HZ 1
+#define BLINK_ERR_FREQUENCY_HZ 3
+static struct k_timer blink_timer;
+static void blink(int frequency_hz);
+static void blink_timer_handler(struct k_timer *timer_id);
+
+K_THREAD_STACK_DEFINE(led_stack, THREAD_SIZE);
+
 int led_init(void)
 {
     int rc;
@@ -30,6 +49,75 @@ int led_init(void)
         rc = -ENODEV;
     }
 #endif
+
+    // Start state machine regardless of device readiness for simulation
+    k_timer_init(&blink_timer, blink_timer_handler, NULL);
+    k_thread_create(&thread, led_stack, THREAD_SIZE, led_thread, NULL, NULL, NULL, THREAD_PRIORITY, 0, K_NO_WAIT);
+    k_sem_init(&blink_sem, SEM_COUNT_INIT, SEM_COUNT_LIMIT);
+    led_event_dispatch(EVENT_IDLE);
     
     return rc;
+}
+
+int led_event_dispatch(enum event event)
+{
+    int rc;
+
+    LOG_DBG("Handling event %d...", event);
+    switch(event)
+    {
+        case EVENT_IDLE:
+            blink(BLINK_IDLE_FREQUENCY_HZ);
+            break;
+        case EVENT_SAMPLE:
+            blink(BLINK_IDLE_FREQUENCY_HZ);
+            break;
+        case EVENT_ERROR:
+            blink(BLINK_ERR_FREQUENCY_HZ);
+            break;
+        default:
+            break;
+    }
+    return rc;
+}
+
+static void led_thread(void *p1, void *p2, void *p3)
+{
+    static bool led_on = false;
+    while(1)
+    {
+        if (k_sem_take(&blink_sem, K_MSEC(SEM_TIMEOUT_MS)) == 0)
+        {
+            if(led_on)
+            {
+                #ifdef CONFIG_PWM
+                #endif
+                LOG_DBG("Turning LED off...");
+            }
+            else
+            {
+                LOG_DBG("Turning LED on...");
+                #ifdef CONFIG_PWM
+                #endif
+            }
+            led_on = !led_on;
+        }
+    }
+}
+static void blink(int frequency_hz)
+{
+#ifdef CONFIG_PWM
+    int rc;
+    rc = pwm_set_dt(&led_pwm, 1/frequency_hz, 1/frequency_hz/2);
+#else
+    k_timer_stop(&blink_timer);
+    k_sem_reset(&blink_sem);
+    k_timer_start(&blink_timer, K_SECONDS(TIMER_START_DELAY_S), K_SECONDS(1/frequency_hz));
+#endif
+}
+
+static void blink_timer_handler(struct k_timer *timer_id)
+{
+    LOG_DBG("Feeding blink semaphore...");
+    k_sem_give(&blink_sem);
 }
