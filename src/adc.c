@@ -71,6 +71,16 @@ int adc_init(void)
     return rc;
 }
 
+int adc_voltage_get(void)
+{
+    return voltage_mv;
+}
+
+int adc_sample_interval_get(void)
+{
+    return sample_interval_ms;
+}
+
 int configure()
 {
     int rc;
@@ -122,7 +132,8 @@ static void work(struct k_work *work)
 
     if (rc == 0)
     {
-        LOG_DBG("Sample success...");
+        LOG_DBG("Sample success...notifying...");
+        ble_voltage_update(voltage_mv);
     }
     else
     {
