@@ -28,7 +28,7 @@ static struct k_timer adc_timer;
 static void adc_timer_handler();
 
 static struct k_work_delayable dwork;
-static void work(struct k_work *work);
+static void work_handler(struct k_work *work);
 
 static uint8_t voltage_mv;
 static int sample_interval_ms = SAMPLE_INTERVAL_MS;
@@ -56,19 +56,13 @@ int adc_init(void)
             LOG_INF("ADC configured");
             LOG_DBG("Initilizing timer and worker...");
             k_timer_init(&adc_timer, adc_timer_handler, NULL);
-            k_work_init_delayable(&dwork, (k_work_handler_t)work);
+            k_work_init_delayable(&dwork, (k_work_handler_t)work_handler);
+            k_timer_start(&adc_timer, K_NO_WAIT, K_MSEC(sample_interval_ms));
         }
         else
         {
             LOG_WRN("ADC configuration failed (%d)", rc);
         }
-    }
-
-    if (rc == 0)
-    {
-        LOG_INF("ADC initilization complete");
-        LOG_DBG("Starting timer with %ds delay...", TIMER_START_DELAY_S);
-        k_timer_start(&adc_timer, K_SECONDS(TIMER_START_DELAY_S), K_MSEC(sample_interval_ms));
     }
     
     return rc;
@@ -111,7 +105,7 @@ static void adc_timer_handler()
     k_work_submit(&dwork);
 }
 
-static void work(struct k_work *work)
+static void work_handler(struct k_work *work)
 {
     int rc;
     led_event_dispatch(EVENT_SAMPLE);
