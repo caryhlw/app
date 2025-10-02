@@ -13,6 +13,8 @@ LOG_MODULE_REGISTER(app_led, LOG_LEVEL);
 #ifdef CONFIG_PWM
 #define DEVICE_NODE DT_ALIAS(led_status)
 static const struct pwm_dt_spec led_pwm = PWM_DT_SPEC_GET(DEVICE_NODE);
+#else
+#warning "LED PWM not configured; using simulated LEDs"
 #endif
 
 #define THREAD_SIZE 512
@@ -67,15 +69,19 @@ int led_event_dispatch(enum event event)
     switch(event)
     {
         case EVENT_IDLE:
-            blink(BLINK_IDLE_FREQUENCY_HZ);
+            rc = blink(BLINK_IDLE_FREQUENCY_HZ);
+            state = STATE_IDLE;
             break;
         case EVENT_SAMPLE:
-            blink(BLINK_IDLE_FREQUENCY_HZ);
+            rc = blink(BLINK_SAMPLING_FREQUENCY_HZ);
+            state = STATE_SAMPLING;
             break;
         case EVENT_ERROR:
-            blink(BLINK_ERR_FREQUENCY_HZ);
+            rc = blink(BLINK_ERROR_FREQUENCY_HZ);
+            state = STATE_ERROR;
             break;
         default:
+            rc = -EINVAL;
             break;
     }
     return rc;
@@ -86,30 +92,52 @@ static void led_thread(void *p1, void *p2, void *p3)
     static bool led_on = false;
     while(1)
     {
+#ifdef CONFIG_PWM
+        if (k_sem_take(&blink_sem, K_FOREVER) == 0)
+        {
+            switch(state)
+            {
+                case STATE_IDLE:
+                    pwm_set_pulse_dt(&led_pwm, 1000);
+                    break;
+                case STATE_SAMPLING:
+                    pwm_set_pulse_dt(&led_pwm, 1000);
+                    k_sleep(1);
+                    led_event_dispatch(EVENT_IDLE);
+                    break;
+                case STATE_ERROR:
+                    pwm_set_pulse_dt(&led_pwm, 1000);
+                    break;
+                default:
+                    rc = -EINVAL;
+            }
+        }
+#else
+        // Manually drive blink using timer if PWM not available
         if (k_sem_take(&blink_sem, K_MSEC(SEM_TIMEOUT_MS)) == 0)
         {
             if(led_on)
             {
-                #ifdef CONFIG_PWM
-                #endif
                 LOG_DBG("Turning LED off...");
             }
             else
             {
                 LOG_DBG("Turning LED on...");
-                #ifdef CONFIG_PWM
-                #endif
             }
             led_on = !led_on;
         }
+#endif
     }
 }
 static void blink(int frequency_hz)
 {
-#ifdef CONFIG_PWM
     int rc;
-    rc = pwm_set_dt(&led_pwm, 1/frequency_hz, 1/frequency_hz/2);
+
+#ifdef CONFIG_PWM
+    LOG_DBG("Deferring PWM configuration to thread...");
+    k_sem_give(&blink_sem);
 #else
+    // Manually drive blink using timer if PWM not available
     k_timer_stop(&blink_timer);
     k_sem_reset(&blink_sem);
     k_timer_start(&blink_timer, K_SECONDS(TIMER_START_DELAY_S), K_SECONDS(1/frequency_hz));
