@@ -43,7 +43,7 @@ static int int_configure(const struct gpio_dt_spec* gpio)
     int rc;
 
     LOG_DBG("Configuring interrupt mode...");
-    rc = gpio_pin_interrupt_configure_dt(gpio, GPIO_INT_EDGE_TO_ACTIVE);
+    rc = gpio_pin_interrupt_configure_dt(gpio, GPIO_INT_EDGE_FALLING);
     if (rc == 0)
     {
         LOG_DBG("Initializing interrupt callback on pin...");
