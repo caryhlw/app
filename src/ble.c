@@ -49,6 +49,10 @@ struct bt_conn_cb conn_cb =
     .disconnected = disconnected
 };
 
+static bool notifications;
+static struct k_work work;
+static void work_handler(struct k_work* work);
+
 int ble_init(void)
 {
     
@@ -63,11 +67,7 @@ int ble_init(void)
         {
             LOG_INF("Advertising as %s", "FW-CHALLENGE");
             bt_conn_cb_register(&conn_cb);
-            
-            #ifdef CONFIG_X
-            // Bonus
-            smp_bt_register();
-            #endif
+            k_work_init(&work, (k_work_handler_t)work_handler);
         }
         else
         {
@@ -85,6 +85,25 @@ void ble_voltage_update(uint16_t voltage_mv)
 {
     LOG_INF("Voltage updated");
     bt_gatt_notify(NULL, &APP_SVC.attrs[1], &voltage_mv, sizeof(voltage_mv));
+}
+
+int ble_notify_toggle(void)
+{
+    int rc;
+
+    LOG_INF("BLE notifications %s", notifications ? "enabled" : "disabled");
+    notifications = !notifications;
+    LOG_DBG("Deferring CCC configuration to work...");
+    rc = k_work_submit(&work);
+    if (rc == 0)
+    {
+        LOG_DBG("Work submitted successfully...");
+    }
+    else
+    {
+        LOG_WRN("Failed to submit work");
+    }
+    return rc;
 }
 
 static void connected(struct bt_conn* conn, uint8_t err)
@@ -125,6 +144,21 @@ static ssize_t sample_interval_read_cb(struct bt_conn* conn, const struct bt_gat
 static void ccc_cfg_changed(const struct bt_gatt_attr* attr, uint16_t value)
 {
     return;
+}
+
+static void work_handler(struct k_work* work)
+{
+    uint8_t buf;
+    if(notifications)
+    {
+        buf = BT_GATT_CCC_NOTIFY;
+    }
+    else
+    {
+        buf = 0;
+    }
+    LOG_DBG("Writing CCC attributes to GATT...");
+    // bt_gatt_attr_write_ccc(conn, attr, notify_flags, sizeof(notify_flags), offset, NULL);
 }
 
 #endif

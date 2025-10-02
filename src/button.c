@@ -6,6 +6,7 @@
 #include <zephyr/drivers/gpio.h>
 
 #include "button.h"
+#include "ble.h"
 
 #define LOG_LEVEL LOG_LEVEL_INF
 LOG_MODULE_REGISTER(app_buttons, LOG_LEVEL);
@@ -62,8 +63,17 @@ static int int_configure(const struct gpio_dt_spec* gpio)
 
 static void int_callback(const struct device* dev, struct gpio_callback* cb, uint32_t pins)
 {
-    // ble_disable_notif in an event (do not do work directly!)
-    return;
+    int rc;
+    
+    rc = ble_notify_toggle();
+    if (rc == 0)
+    {
+        LOG_DBG("Toggling BLE notifications...");
+    }
+    else
+    {
+        LOG_WRN("Failed to toggle BLE notifications");
+    }
 }
 
 #endif
