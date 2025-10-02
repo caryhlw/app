@@ -101,8 +101,8 @@ static int adc_sample()
 
 static void adc_timer_handler()
 {
-    LOG_DBG("Dispatching work...");
-    k_work_submit(&dwork);
+    LOG_DBG("Scheduling work from timer...");
+    k_work_schedule(&dwork, K_NO_WAIT);
 }
 
 static void work_handler(struct k_work *work)
