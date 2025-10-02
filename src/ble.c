@@ -42,7 +42,6 @@ BT_GATT_SERVICE_DEFINE(APP_SVC,
 
 static void connected(struct bt_conn* conn, uint8_t err);
 static void disconnected(struct bt_conn* conn, uint8_t reason);
-
 struct bt_conn_cb conn_cb =
 {
     .connected = connected,
@@ -55,9 +54,9 @@ static void work_handler(struct k_work* work);
 
 int ble_init(void)
 {
-    
     int rc;
-    
+ 
+    LOG_DBG("Enabling BT...");
     rc = bt_enable(NULL);
     if (rc == 0)
     {
@@ -114,7 +113,7 @@ static void connected(struct bt_conn* conn, uint8_t err)
     }
     else
     {
-
+        
     }
 }
 
