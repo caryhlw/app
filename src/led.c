@@ -20,19 +20,26 @@ static const struct pwm_dt_spec led_pwm = PWM_DT_SPEC_GET(DEVICE_NODE);
 #define THREAD_SIZE 512
 #define THREAD_PRIORITY 7
 static struct k_thread thread;
-static void led_thread(void *p1, void *p2, void *p3);
+static void led_thread(void* p1, void* p2, void* p3);
 
 #define SEM_COUNT_INIT 0
 #define SEM_COUNT_LIMIT 1
 #define SEM_TIMEOUT_MS 100
 static struct k_sem blink_sem;
 
-#define TIMER_START_DELAY_S 0
 #define BLINK_IDLE_FREQUENCY_HZ 1
-#define BLINK_ERR_FREQUENCY_HZ 3
+#define BLINK_SAMPLING_FREQUENCY_HZ 2
+#define BLINK_ERROR_FREQUENCY_HZ 3
 static struct k_timer blink_timer;
-static void blink(int frequency_hz);
-static void blink_timer_handler(struct k_timer *timer_id);
+static int blink(int frequency_hz);
+static void blink_timer_handler(struct k_timer* timer_id);
+
+enum states {
+    STATE_IDLE,
+    STATE_SAMPLING,
+    STATE_ERROR
+};
+static enum states state;
 
 K_THREAD_STACK_DEFINE(led_stack, THREAD_SIZE);
 
@@ -53,10 +60,11 @@ int led_init(void)
 #endif
 
     // Start state machine regardless of device readiness for simulation
+    LOG_DBG("Initializing semaphores, timers, thread, etc...");
+    k_sem_init(&blink_sem, SEM_COUNT_INIT, SEM_COUNT_LIMIT);
     k_timer_init(&blink_timer, blink_timer_handler, NULL);
     k_thread_create(&thread, led_stack, THREAD_SIZE, led_thread, NULL, NULL, NULL, THREAD_PRIORITY, 0, K_NO_WAIT);
-    k_sem_init(&blink_sem, SEM_COUNT_INIT, SEM_COUNT_LIMIT);
-    led_event_dispatch(EVENT_IDLE);
+    rc = led_event_dispatch(EVENT_IDLE);
     
     return rc;
 }
@@ -87,7 +95,7 @@ int led_event_dispatch(enum event event)
     return rc;
 }
 
-static void led_thread(void *p1, void *p2, void *p3)
+static void led_thread(void* p1, void* p2, void* p3)
 {
     static bool led_on = false;
     while(1)
@@ -129,7 +137,7 @@ static void led_thread(void *p1, void *p2, void *p3)
 #endif
     }
 }
-static void blink(int frequency_hz)
+static int blink(int frequency_hz)
 {
     int rc;
 
@@ -140,12 +148,15 @@ static void blink(int frequency_hz)
     // Manually drive blink using timer if PWM not available
     k_timer_stop(&blink_timer);
     k_sem_reset(&blink_sem);
-    k_timer_start(&blink_timer, K_SECONDS(TIMER_START_DELAY_S), K_SECONDS(1/frequency_hz));
+    LOG_DBG("Starting blink timer...");
+    k_timer_start(&blink_timer, K_NO_WAIT, K_SECONDS(1/frequency_hz));
+    rc = 0;
 #endif
+    return rc;
 }
 
 static void blink_timer_handler(struct k_timer *timer_id)
 {
-    LOG_DBG("Feeding blink semaphore...");
+    LOG_DBG("Deferring LED toggle to thread...");
     k_sem_give(&blink_sem);
 }
