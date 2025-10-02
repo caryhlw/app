@@ -12,26 +12,58 @@ LOG_MODULE_REGISTER(app_main, LOG_LEVEL);
 int main(void)
 {
         int rc;
-        LOG_INF("Application started");
+        LOG_DBG("Starting application...");
 
 #ifdef CONFIG_ADC
+        LOG_DBG("Starting battery monitor...");
         rc = adc_init();
-        LOG_DBG("ADC returned %d", rc);
+        if (rc == 0)
+        {
+                LOG_INF("ADC initialization success");
+        }
+        else
+        {
+                LOG_WRN("ADC initialization failed (%d)", rc);
+        }
 #endif
 
 #ifdef CONFIG_LED
+        LOG_DBG("Starting LEDs...");
         rc = led_init();
-        LOG_DBG("LED returned %d", rc);
+        if (rc == 0)
+        {
+                LOG_INF("LED initialization success");
+        }
+        else
+        {
+                LOG_WRN("LED initialization failed (%d)", rc);
+        }
 #endif
 
 #ifdef CONFIG_BUTTON
+        LOG_DBG("Starting button handler...");
         rc = button_init();
-        LOG_DBG("Button returned %d", rc);
+        if (rc == 0)
+        {
+                LOG_INF("Button initialization success");
+        }
+        else
+        {
+                LOG_WRN("Button initialization failed (%d)", rc);
+        }
 #endif
 
 #ifdef CONFIG_BT
+        LOG_DBG("Starting BLE...");
         rc = ble_init();
-        LOG_DBG("BLE returned %d", rc);
+        if (rc == 0)
+        {
+                LOG_INF("BLE initialization success");
+        }
+        else
+        {
+                LOG_WRN("BLE initialization failed (%d)", rc);
+        }
 #endif
 
         return 0;
