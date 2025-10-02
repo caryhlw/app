@@ -93,8 +93,8 @@ static int adc_sample()
     {
         // Mock for now
         voltage_mv = 2200;
-
     }
+    sample_count++;
 
     return rc;
 }
