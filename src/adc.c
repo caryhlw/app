@@ -21,7 +21,7 @@ LOG_MODULE_REGISTER(app_adc, LOG_LEVEL);
 
 #define ADC_DEVICE DT_ALIAS(adc)
 static const struct device *dev;
-static struct adc_channel_cfg config;
+static const struct adc_channel_cfg config = ADC_CHANNEL_CFG_DT(DT_CHILD(ADC_DEVICE, channel_0));
 
 #define TIMER_START_DELAY_S 0
 static struct k_timer adc_timer;
@@ -33,8 +33,7 @@ static void work(struct k_work *work);
 static uint8_t voltage_mv;
 static int sample_interval_ms = SAMPLE_INTERVAL_MS;
 
-static int configure();
-static int sample();
+static int adc_sample();
 
 int adc_init(void)
 {
@@ -50,7 +49,8 @@ int adc_init(void)
     else
     {
         LOG_INF("ADC found");
-        rc = configure();
+        LOG_DBG("Configuring ADC...");
+        rc = adc_channel_setup(dev, &config);
         if (rc == 0)
         {
             LOG_INF("ADC configured");
@@ -84,23 +84,7 @@ int adc_sample_interval_get(void)
     return sample_interval_ms;
 }
 
-int configure()
-{
-    int rc;
-        LOG_DBG("Configuring ADCs...");
-        config.gain = ADC_GAIN_1_6;
-        config.reference = ADC_REF_INTERNAL;
-        config.acquisition_time = ADC_ACQ_TIME_DEFAULT;
-        config.channel_id = 0;
-        config.differential = NRF_SAADC_MODE_SINGLE_ENDED;
-#if CONFIG_ADC_CONFIGURABLE_INPUTS
-        config.input_positive = NRF_SAADC_INPUT_AIN0;
-#endif
-        rc = adc_channel_setup(dev, &config);
-        return rc;
-}
-
-static int sample()
+static int adc_sample()
 {
     int rc;
 
@@ -132,7 +116,7 @@ static void work(struct k_work *work)
     int rc;
     led_event_dispatch(EVENT_SAMPLE);
     LOG_DBG("Sampling VDD...");
-    sample();
+    rc = adc_sample();
 
     if (rc == 0)
     {
