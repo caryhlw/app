@@ -16,9 +16,6 @@
 #define LOG_LEVEL LOG_LEVEL_INF
 LOG_MODULE_REGISTER(app_adc, LOG_LEVEL);
 
-#define APP DT_PATH(app)
-#define SAMPLE_INTERVAL_MS DT_PROP(APP, sample_interval_ms)
-
 #define ADC_DEVICE DT_ALIAS(adc)
 static const struct device *dev;
 static const struct adc_channel_cfg config = ADC_CHANNEL_CFG_DT(DT_CHILD(ADC_DEVICE, channel_0));
@@ -30,8 +27,11 @@ static void adc_timer_handler();
 static struct k_work_delayable dwork;
 static void work_handler(struct k_work *work);
 
-static uint8_t voltage_mv;
-static int sample_interval_ms = SAMPLE_INTERVAL_MS;
+#define APP DT_PATH(app)
+#define SAMPLE_INTERVAL_MS DT_PROP(APP, sample_interval_ms)
+static uint16_t voltage_mv;
+static uint32_t sample_interval_ms = SAMPLE_INTERVAL_MS;
+static uint32_t sample_count;
 
 static int adc_sample();
 
@@ -68,12 +68,12 @@ int adc_init(void)
     return rc;
 }
 
-int adc_voltage_get(void)
+uint16_t adc_voltage_get(void)
 {
     return voltage_mv;
 }
 
-int adc_sample_interval_get(void)
+uint32_t adc_sample_interval_get(void)
 {
     return sample_interval_ms;
 }

@@ -81,9 +81,9 @@ int ble_init(void)
     return rc;
 }
 
-void ble_voltage_update(uint8_t voltage_mv)
+void ble_voltage_update(uint16_t voltage_mv)
 {
-    LOG_INF("Voltage mV updated");
+    LOG_INF("Voltage updated");
     bt_gatt_notify(NULL, &APP_SVC.attrs[1], &voltage_mv, sizeof(voltage_mv));
 }
 
@@ -106,8 +106,8 @@ static void disconnected(struct bt_conn* conn, uint8_t reason)
 
 static ssize_t sample_voltage_read_cb(struct bt_conn* conn, const struct bt_gatt_attr* attr, void* buf, uint16_t len, uint16_t offset)
 {
-    int voltage_mv;
-
+    uint16_t voltage_mv;
+    
     LOG_DBG("Reading sample voltage from within callback...");
     voltage_mv = adc_voltage_get();
     return bt_gatt_attr_read(conn, attr, buf, len, offset, &voltage_mv, sizeof(voltage_mv));
@@ -115,8 +115,8 @@ static ssize_t sample_voltage_read_cb(struct bt_conn* conn, const struct bt_gatt
 
 static ssize_t sample_interval_read_cb(struct bt_conn* conn, const struct bt_gatt_attr* attr, void* buf, uint16_t len, uint16_t offset)
 {
-    int interval_ms;
-
+    uint32_t interval_ms;
+    
     LOG_DBG("Reading sample interval from within callback...");
     interval_ms = adc_sample_interval_get();
     return bt_gatt_attr_read(conn, attr, buf, len, offset, &interval_ms, sizeof(interval_ms));
